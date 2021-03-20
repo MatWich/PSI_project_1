@@ -11,6 +11,25 @@ try:
 except ImportError:
     raise ImportError("Nie udalo sie zaimportowac wszystkich modulow")
 
+def create_model():
+    """ TWORZENIE MODELU"""
+    model = keras.Sequential()
+    model.add(keras.layers.Input(x_train.shape[1]))
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(500, activation="relu"))  # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(250, activation="relu"))  # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(125, activation="relu"))  # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(75, activation="relu"))  # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(35, activation="sigmoid"))
+    model.add(keras.layers.Dense(len(df[target].value_counts()), activation="softmax"))
+
+    ''' ROZNE ACC NISKA VAL_LOSS'''
+    model.compile(optimizer='adam',
+                  loss=tf.keras.losses.LogCosh(),
+                  metrics=['accuracy'])
+
+    return model
+
 df = pd.read_csv("udemy_output_All_Lifestyle_p1_p626.csv")
 # daje to bo ma 7 roznych wartosci a nie 27k przez co acc moze byc wysokie, cos do 20 wartosci mysle ze by bylo spoko
 target = 'num_published_practice_tests'
@@ -50,14 +69,15 @@ x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y
 """ ZAPIS MODELI WYKOMENTUJ JESLI CHCESZ TYLKO TESTOWAC """
 
 #checkPointPath = "training/cp-{epoch:04d}.ckpt"
-checkPointPath = "training/cp-best.ckpt"
+checkPointPath = "training/cp-best.ckpt-logcosh"
+
 checkpointDir = os.path.dirname(checkPointPath)
 
 
 cpCallback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkPointPath,
     verbose=1,
-    save_weights_only=False,
+    save_weights_only=True,
     save_best_only=True,
     monitor='val_accuracy',
     mode='max'
@@ -100,7 +120,9 @@ print("MAX ACC: ", max(models.history["val_accuracy"]))
 
 
 """ WCZYTYWANIE MODELU """
-checkPointPath = "training/cp-best.ckpt"      # nr epocha podac trzeba, aby dzialac zaczelo
-model.load_weights(checkPointPath)
+#checkPointPath = "training/cp-best.ckpt"      # nr epocha podac trzeba, aby dzialac zaczelo
+model = create_model()
+latest = tf.train.latest_checkpoint(checkpointDir)
+model.load_weights(latest)
 loss, acc = model.evaluate(x_test, y_test)
-print(f"Przywrocony model, acc: {loss}, {acc}")
+print(f"Przywrocony model loss, acc: {loss}, {acc}")
