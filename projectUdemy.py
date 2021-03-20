@@ -6,6 +6,7 @@ try:
     import matplotlib.pyplot as plt
     import sklearn
     from sklearn import *
+    import os
     #from sklearn.preprocessing import scale, SimpleImputer
 except ImportError:
     raise ImportError("Nie udalo sie zaimportowac wszystkich modulow")
@@ -44,6 +45,24 @@ print(len(df[target].value_counts()))
 x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, stratify=y, test_size=0.1,
                                                                             random_state=43)
 
+
+
+""" ZAPIS MODELI WYKOMENTUJ JESLI CHCESZ TYLKO TESTOWAC """
+
+#checkPointPath = "training/cp-{epoch:04d}.ckpt"
+checkPointPath = "training/cp-best.ckpt"
+checkpointDir = os.path.dirname(checkPointPath)
+
+
+cpCallback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkPointPath,
+    verbose=1,
+    save_weights_only=False,
+    save_best_only=True,
+    monitor='val_accuracy',
+    mode='max'
+    )
+
 """ TWORZENIE MODELU"""
 model = keras.Sequential()
 model.add(keras.layers.Input(x_train.shape[1]))
@@ -54,6 +73,7 @@ model.add(keras.layers.Dense(125, activation="relu"))  # kazdy neuron jest z kaz
 model.add(keras.layers.Dense(75, activation="relu"))  # kazdy neuron jest z kazdym polaczony
 model.add(keras.layers.Dense(35, activation="sigmoid"))
 model.add(keras.layers.Dense(len(df[target].value_counts()), activation="softmax"))
+
 
 """ DUZA ACC I VAL_LOSS CALY CZAS"""
 # model.compile(optimizer='adam',
@@ -71,5 +91,16 @@ model.compile(optimizer='adam',
 #               metrics=['accuracy'])
 
 
-models = model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+
+
+models = model.fit(x_train, y_train, epochs=10, callbacks=[cpCallback], validation_data=(x_test, y_test), verbose=0)
+#models = model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
 print("MAX ACC: ", max(models.history["val_accuracy"]))
+
+
+
+""" WCZYTYWANIE MODELU """
+checkPointPath = "training/cp-best.ckpt"      # nr epocha podac trzeba, aby dzialac zaczelo
+model.load_weights(checkPointPath)
+loss, acc = model.evaluate(x_test, y_test)
+print(f"Przywrocony model, acc: {loss}, {acc}")
