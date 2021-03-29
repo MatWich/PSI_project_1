@@ -21,12 +21,23 @@ def create_model():
     model.add(keras.layers.Dense(125, activation="relu"))  # kazdy neuron jest z kazdym polaczony
     model.add(keras.layers.Dense(75, activation="relu"))  # kazdy neuron jest z kazdym polaczony
     model.add(keras.layers.Dense(35, activation="sigmoid"))
+    model.add(keras.layers.Dropout(0.1))                    # zeby siec nie byla za bardzo dopasowana
     model.add(keras.layers.Dense(len(df[target].value_counts()), activation="softmax"))
 
     ''' ROZNE ACC NISKA VAL_LOSS'''
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.LogCosh(),
                   metrics=['accuracy'])
+
+    ''' WYJATKOWO SLABE ACC'''
+    # model.compile(optimizer='adam',
+    #               loss=tf.keras.losses.SquaredHinge(),
+    #               metrics=['accuracy'])
+
+    """ DUZA ACC I VAL_LOSS CALY CZAS"""
+    # model.compile(optimizer='adam',
+    #               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    #               metrics=["accuracy"])
 
     return model
 
@@ -61,18 +72,15 @@ X = pd.DataFrame(zip(num_subscribers, avg_rating, avg_rating_recent, num_reviews
 y = dataDict[target]
 print(len(df[target].value_counts()))
 
-x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, stratify=y, test_size=0.1,
+x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, stratify=y, test_size=0.2,
                                                                             random_state=43)
 
 
 
-""" ZAPIS MODELI WYKOMENTUJ JESLI CHCESZ TYLKO TESTOWAC """
-
+""" ZAPIS MODELI """
 #checkPointPath = "training/cp-{epoch:04d}.ckpt"
 checkPointPath = "training/cp-best.ckpt-logcosh"
-
 checkpointDir = os.path.dirname(checkPointPath)
-
 
 cpCallback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkPointPath,
@@ -83,45 +91,20 @@ cpCallback = tf.keras.callbacks.ModelCheckpoint(
     mode='max'
     )
 
-""" TWORZENIE MODELU"""
-model = keras.Sequential()
-model.add(keras.layers.Input(x_train.shape[1]))
-model.add(keras.layers.Flatten())
-model.add(keras.layers.Dense(500, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-model.add(keras.layers.Dense(250, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-model.add(keras.layers.Dense(125, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-model.add(keras.layers.Dense(75, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-model.add(keras.layers.Dense(35, activation="sigmoid"))
-model.add(keras.layers.Dense(len(df[target].value_counts()), activation="softmax"))
+""" TWORZENIE MODELU """
+model = create_model()
 
-
-""" DUZA ACC I VAL_LOSS CALY CZAS"""
-# model.compile(optimizer='adam',
-#               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-#               metrics=["accuracy"])
-
-''' ROZNE ACC NISKA VAL_LOSS'''
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.LogCosh(),
-              metrics=['accuracy'])
-
-''' WYJATKOWO SLABE ACC'''
-# model.compile(optimizer='adam',
-#               loss=tf.keras.losses.SquaredHinge(),
-#               metrics=['accuracy'])
-
-
-
-
+""" TRENOWANIE MODELU (do zakomentowania gdy juz mamy zrobione)"""
 models = model.fit(x_train, y_train, epochs=10, callbacks=[cpCallback], validation_data=(x_test, y_test), verbose=0)
 #models = model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
 print("MAX ACC: ", max(models.history["val_accuracy"]))
 
 
-
 """ WCZYTYWANIE MODELU """
 #checkPointPath = "training/cp-best.ckpt"      # nr epocha podac trzeba, aby dzialac zaczelo
 model = create_model()
+loss, acc = model.evaluate(x_test, y_test)
+print(f"Nie trenowany model: loss: {loss}, acc: {acc}")
 latest = tf.train.latest_checkpoint(checkpointDir)
 model.load_weights(latest)
 loss, acc = model.evaluate(x_test, y_test)
