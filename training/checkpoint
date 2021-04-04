@@ -1,2 +1,2 @@
-model_checkpoint_path: "cp-best.ckpt-logcosh"
-all_model_checkpoint_paths: "cp-best.ckpt-logcosh"
+model_checkpoint_path: "cp-best.ckpt-crossentrophy"
+all_model_checkpoint_paths: "cp-best.ckpt-crossentrophy"

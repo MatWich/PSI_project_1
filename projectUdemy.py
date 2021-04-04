@@ -14,20 +14,19 @@ except ImportError:
 def create_model():
     """ TWORZENIE MODELU"""
     model = keras.Sequential()
-    model.add(keras.layers.Input(x_train.shape[1]))
-    model.add(keras.layers.Flatten())
-    model.add(keras.layers.Dense(500, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-    model.add(keras.layers.Dense(250, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-    model.add(keras.layers.Dense(125, activation="relu"))  # kazdy neuron jest z kazdym polaczony
-    model.add(keras.layers.Dense(75, activation="relu"))  # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Input(x_train.shape[1]))         # wejsciowa wartswa
+    model.add(keras.layers.Dense(500, activation="relu"))   # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(250, activation="relu"))   # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(125, activation="relu"))   # kazdy neuron jest z kazdym polaczony
+    model.add(keras.layers.Dense(75, activation="relu"))    # kazdy neuron jest z kazdym polaczony
     model.add(keras.layers.Dense(35, activation="sigmoid"))
-    model.add(keras.layers.Dropout(0.1))                    # zeby siec nie byla za bardzo dopasowana
+    model.add(keras.layers.Dropout(0.9))                    # zeby siec nie byla za bardzo dopasowana
     model.add(keras.layers.Dense(len(df[target].value_counts()), activation="softmax"))
 
     ''' ROZNE ACC NISKA VAL_LOSS'''
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.LogCosh(),
-                  metrics=['accuracy'])
+    # model.compile(optimizer='adam',
+    #               loss=tf.keras.losses.LogCosh(),
+    #               metrics=['accuracy'])
 
     ''' WYJATKOWO SLABE ACC'''
     # model.compile(optimizer='adam',
@@ -35,14 +34,13 @@ def create_model():
     #               metrics=['accuracy'])
 
     """ DUZA ACC I VAL_LOSS CALY CZAS"""
-    # model.compile(optimizer='adam',
-    #               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    #               metrics=["accuracy"])
+    model.compile(optimizer='adam',
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=["accuracy"])
 
     return model
 
 df = pd.read_csv("udemy_output_All_Lifestyle_p1_p626.csv")
-# daje to bo ma 7 roznych wartosci a nie 27k przez co acc moze byc wysokie, cos do 20 wartosci mysle ze by bylo spoko
 target = 'num_published_practice_tests'
 
 """ PRZYGOTOWANIE DANYCH """
@@ -79,7 +77,7 @@ x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y
 
 """ ZAPIS MODELI """
 #checkPointPath = "training/cp-{epoch:04d}.ckpt"
-checkPointPath = "training/cp-best.ckpt-logcosh"
+checkPointPath = "training/cp-best.ckpt-crossentrophy"
 checkpointDir = os.path.dirname(checkPointPath)
 
 cpCallback = tf.keras.callbacks.ModelCheckpoint(
@@ -108,4 +106,7 @@ print(f"Nie trenowany model: loss: {loss}, acc: {acc}")
 latest = tf.train.latest_checkpoint(checkpointDir)
 model.load_weights(latest)
 loss, acc = model.evaluate(x_test, y_test)
-print(f"Przywrocony model loss, acc: {loss}, {acc}")
+print(f"Przywrocony model loss, acc(dla testowego): {loss}, {acc}")
+
+loss, acc = model.evaluate(x_train, y_train)
+print(f"Przywrocony model loss, acc(dla trenowanego): {loss}, {acc}")
